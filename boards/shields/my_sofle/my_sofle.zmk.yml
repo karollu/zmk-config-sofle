@@ -1,6 +1,6 @@
 file_format: "1"
 id: my_sofle
-name: Sofle
+name: My_Sofle
 type: shield
 url: https://github.com/josefadamcik/SofleKeyboard
 requires: [pro_micro]
