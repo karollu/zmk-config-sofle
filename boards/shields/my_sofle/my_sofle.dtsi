@@ -72,14 +72,12 @@ RC(3,0) RC(3,1) RC(3,2) RC(3,3) RC(3,4) RC(3,5) RC(4,5) RC(4,6) RC(3,6) RC(3,7) 
     };
 };
 
-&i2c0 {
+&pro_micro_i2c {
     status = "okay";
 
     oled: sh1107@3c {
         compatible = "sinowealth,sh1107";
         reg = <0x3c>;
-        width = <64>;   /* SH1107 fizycznie ma 64 szerokości */
-        height = <128>; /* i 128 wysokości w pionie */
         segment-offset = <0>;
         page-offset = <0>;
         display-offset = <0>;
