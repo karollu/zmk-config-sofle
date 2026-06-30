@@ -59,7 +59,7 @@
 &kp TAB   &kp Q  &kp W    &kp F    &kp P     &kp B                            &kp J  &kp L     &kp U     &kp Y    &kp SEMI &kp MINUS
 &kp ESC   &kp A  &kp R    &kp S    &hml LCTRL T &kp G                            &kp M  &kp N     &kp E     &kp I    &kp O    &kp SQT
 &kp LSHFT &kp Z  &kp X    &kp C    &kp D     &kp V      &kp C_MUTE &none      &kp K  &kp H     &kp COMMA &kp DOT  &kp FSLH &kp RSHFT
-                 &kp LGUI &kp LCTRL &kp LALT &kp ESC  &lt LOWER RET    &lt RAISE BSPC  &kp SPACE &kp RALT &kp RCTRL  &kp RGUI
+                 &kp LGUI &kp LCTRL &kp LALT &lt RAISE ESC  &lt LOWER RET    &lt RAISE BSPC  &kp SPACE &kp RALT &kp RCTRL  &kp RGUI
             >;
 
             sensor-bindings = <&inc_dec_kp C_VOL_UP C_VOL_DN &inc_dec_kp BSPC DEL>;
@@ -89,15 +89,15 @@
             display-name = "raise";
 // ------------------------------------------------------------------------------------------------------------
 // | BTCLR | BT1  | BT2  |  BT3  |  BT4  |  BT5 |                |      |      |       |      |       |       |
-// |       | INS  |      | GUI   |       |      |                | PGUP |      |   ^   |      |       |       |
-// |       | ALT  | CTRL | SHIFT |       | CAPS |                | PGDN |   <- |   v   |  ->  |  DEL  | BKSPC |
-// |       | UNDO | CUT  | COPY  | PASTE |      |      |  |      |      |      |       | PSCR |       |       |
+// |       | INS  |      | GUI   |       |      |                | PGUP | BSPC |   ^   | DEL  |       |       |
+// |       | ALT  | CTRL | SHIFT |       | CAPS |                | PGDN |   <- |   v   |  ->  |  RET  |       |
+// |       | UNDO | CUT  | COPY  | PASTE |      |      |  |      | INS  | TAB  |       | PSCR |       |       |
 //                |      |       |       |      |      |  |      |      |      |       |      |
             bindings = <
 &bt BT_CLR &bt BT_SEL 0 &bt BT_SEL 1 &bt BT_SEL 2 &bt BT_SEL 3 &bt BT_SEL 4                  &trans    &trans    &trans   &trans    &trans  &trans
-&trans     &kp INS      &trans       &kp K_CMENU  &trans       &trans                        &kp PG_UP &trans    &kp UP   &trans    &trans  &trans
-&trans     &kp LCTRL    &kp LALT     &kp LSHFT    &trans       &kp CLCK                      &kp PG_DN &kp LEFT  &kp DOWN &kp RIGHT &kp DEL &kp BSPC
-&trans     &kp K_UNDO   &kp K_CUT    &kp K_COPY   &kp K_PASTE  &trans        &trans  &trans  &trans    &trans    &trans   &kp PSCRN &trans  &trans
+&trans     &kp INS      &trans       &kp K_CMENU  &trans       &trans                        &kp PG_UP &kp BSPC  &kp UP   &kp DEL   &trans  &trans
+&trans     &kp LCTRL    &kp LALT     &kp LSHFT    &trans       &kp CLCK                      &kp PG_DN &kp LEFT  &kp DOWN &kp RIGHT &kp RET &kp BSPC
+&trans     &kp K_UNDO   &kp K_CUT    &kp K_COPY   &kp K_PASTE  &trans        &trans  &trans  &kp INS   &kp TAB   &trans   &kp PSCRN &trans  &trans
                         &trans       &trans       &trans       &trans        &trans  &trans  &trans    &trans    &trans   &trans
             >;
 
