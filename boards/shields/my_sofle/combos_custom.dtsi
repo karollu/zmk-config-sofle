@@ -75,14 +75,14 @@
         combo_copy {
             timeout-ms = <18>;
             key-positions = <LB3 LB2>;
-            bindings = <&kp LC(INS)>;
+            bindings = <&kp LC(C)>;
             layers = <0 1 2>;
         };
 
         combo_paste {
             timeout-ms = <18>;
             key-positions = <LB2 LB1>;
-            bindings = <&kp LS(INS)>;
+            bindings = <&kp LC(V)>;
             layers = <0 1 2>;
         };
 

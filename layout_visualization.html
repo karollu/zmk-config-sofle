@@ -14,6 +14,8 @@
             --accent-primary: #38bdf8;
             --accent-secondary: #818cf8;
             --accent-warn: #fb7185;
+            --accent-combo: #10b981; /* Neon green */
+            --accent-combo-glow: rgba(16, 185, 129, 0.4);
             --hold-color: #a78bfa;
             --border-color: #334155;
             --font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -91,6 +93,11 @@
             box-shadow: 0 4px 14px rgba(56, 189, 248, 0.3);
         }
 
+        .layer-btn.combo-mode-btn.active {
+            background: linear-gradient(135deg, var(--accent-combo), #059669);
+            box-shadow: 0 4px 14px var(--accent-combo-glow);
+        }
+
         /* Kontener klawiatury */
         .keyboard-container {
             display: flex;
@@ -99,6 +106,7 @@
             max-width: 1300px;
             justify-content: center;
             animation: slideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
         }
 
         .half {
@@ -165,6 +173,7 @@
             transition: all 0.2s ease;
             position: relative;
             user-select: none;
+            z-index: 5;
         }
 
         .key:hover {
@@ -231,7 +240,65 @@
             color: #475569;
         }
 
-        /* Sekcja combosów */
+        /* Wskaźnik, że klawisz ma combosy */
+        .key.has-combo-indicator {
+            border: 1px dashed var(--accent-combo);
+        }
+
+        .key.has-combo-indicator::before {
+            content: '';
+            position: absolute;
+            top: 4px;
+            left: 4px;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background-color: var(--accent-combo);
+            box-shadow: 0 0 6px var(--accent-combo);
+        }
+
+        /* Podświetlanie aktywnych klawiszy combosów */
+        .key.highlight-combo {
+            background: linear-gradient(135deg, #10b981, #059669) !important;
+            color: #060b13 !important;
+            border-color: #ffffff !important;
+            transform: scale(1.05);
+            box-shadow: 0 0 15px var(--accent-combo);
+            z-index: 15;
+        }
+
+        .key.highlight-combo .tap-label {
+            color: #060b13 !important;
+            font-weight: 800;
+        }
+
+        /* Tryb combosów */
+        body.combo-mode .key:not(.highlight-combo):not(.encoder) {
+            background-color: #111827;
+            border-color: #1f2937;
+        }
+
+        body.combo-mode .key:not(.highlight-combo) .tap-label {
+            opacity: 0.15;
+            color: #4b5563;
+        }
+
+        body.combo-mode .key:not(.highlight-combo) .hold-label {
+            opacity: 0 !important;
+        }
+
+        /* SVG overlay na całym ekranie do rysowania połączeń */
+        .svg-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 20; /* Draw lines and badges above keys (which have z-index: 15) */
+        }
+
+        /* Sekcja combosów na dole */
         .combos-section {
             margin-top: 4rem;
             width: 100%;
@@ -264,9 +331,10 @@
             transition: all 0.2s ease;
         }
 
-        .combo-card:hover {
-            border-color: var(--accent-secondary);
+        .combo-card:hover, .combo-card.highlight {
+            border-color: var(--accent-combo);
             transform: scale(1.02);
+            background-color: var(--key-bg-hover);
         }
 
         .combo-keys {
@@ -286,20 +354,10 @@
 
         .combo-result {
             font-weight: 800;
-            color: var(--accent-primary);
+            color: var(--accent-combo);
             font-size: 1.1rem;
         }
 
-        /* Podświetlanie aktywnych klawiszy przy najechaniu na combo */
-        .key.highlight-combo {
-            background-color: var(--accent-secondary);
-            color: #ffffff;
-            border-color: #ffffff;
-            transform: scale(1.05);
-            box-shadow: 0 0 15px var(--accent-secondary);
-        }
-
-        /* Animacje */
         @keyframes fadeIn {
             from { opacity: 0; }
             to { opacity: 1; }
@@ -310,7 +368,6 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        /* Responsywność */
         @media (max-width: 1200px) {
             .keyboard-container {
                 flex-direction: column;
@@ -323,6 +380,9 @@
 </head>
 <body>
 
+    <!-- SVG do dynamicznego rysowania linii połączeń -->
+    <svg class="svg-overlay" id="combo-svg"></svg>
+
     <header>
         <h1>My Sofle Keyboard</h1>
         <p>Interactive Layout & Combo Visualizer</p>
@@ -333,9 +393,10 @@
         <button class="layer-btn" onclick="switchLayer('lower')">LOWER</button>
         <button class="layer-btn" onclick="switchLayer('raise')">RAISE</button>
         <button class="layer-btn" onclick="switchLayer('adjust')">ADJUST (L+R)</button>
+        <button class="layer-btn combo-mode-btn" onclick="toggleComboMode()">COMBOS VIEW</button>
     </div>
 
-    <div class="keyboard-container">
+    <div class="keyboard-container" id="kb-container">
         <!-- LEWA POŁÓWKA -->
         <div class="half left" id="left-half">
             <!-- Wiersz 0 -->
@@ -441,14 +502,13 @@
     <!-- SEKCJA COMBOSÓW -->
     <div class="combos-section">
         <h2>Custom Combos</h2>
-        <p style="color: #64748b; margin-bottom: 1.5rem;">Hover over a combo to see the key positions highlighted on the keyboard layout.</p>
+        <p style="color: #64748b; margin-bottom: 1.5rem;">Hover over any physical key (marked with a dashed border) to see all active combos mapped to it, or hover over cards below.</p>
         <div class="combos-grid" id="combos-list">
             <!-- Generowane przez JS -->
         </div>
     </div>
 
     <script>
-        // Definicje klawiszy na poszczególnych warstwach
         const layouts = {
             default: {
                 0: "`", 1: "1", 2: "2", 3: "3", 4: "4", 5: "5",
@@ -497,22 +557,21 @@
                 50: "none", 51: "none", 52: "none", 53: "none", 54: "none",
 
                 6: "none", 7: "none", 8: "none", 9: "none", 10: "none", 11: "none",
-                18: "none", 19: "none", 20: "none", 21: "none", 22: "none", 23: "none",
-                30: "none", 31: "7", 32: "8", 33: "9", 34: "/", 35: "*",
-                43: "none", 44: "none", 45: "4", 46: "5", 47: "6", 48: "-", 49: "+",
-                55: "none", 56: "1", 57: "2", 58: "3", 59: ".", 60: "RET", 61: "0" // Custom mapping for numpad bottom
+                18: "none", 19: "7", 20: "8", 21: "9", 22: "/", 23: "*",
+                30: "none", 31: "4", 32: "5", 33: "6", 34: "-", 35: "+",
+                43: "none", 44: "none", 45: "1", 46: "2", 47: "3", 48: ".", 49: "RET",
+                55: "none", 56: "0", 57: "none", 58: "none", 59: "none"
             }
         };
 
-        // Definicje combosów
         const combos = [
             { name: "ESC", result: "ESC", keys: [14, 15], labels: ["W", "F"] },
             { name: "TAB", result: "TAB", keys: [26, 27], labels: ["R", "S"] },
-            { name: "CUT", result: "Ctrl + X (Cut)", keys: [38, 40], labels: ["X", "D"] },
-            { name: "COPY", result: "Ctrl + Ins (Copy)", keys: [38, 39], labels: ["X", "C"] },
-            { name: "PASTE", result: "Shift + Ins (Paste)", keys: [39, 40], labels: ["C", "D"] },
-            { name: "BSPC", result: "Backspace", keys: [19, 20], labels: ["L", "U"] },
-            { name: "DEL", result: "Delete", keys: [20, 21], labels: ["U", "Y"] },
+            { name: "CUT", result: "Cut", keys: [38, 40], labels: ["X", "D"], yOffset: 25 },
+            { name: "COPY", result: "Copy", keys: [38, 39], labels: ["X", "C"], yOffset: 0 },
+            { name: "PASTE", result: "Paste", keys: [39, 40], labels: ["C", "D"], yOffset: 0 },
+            { name: "BSPC", result: "BSPC", keys: [19, 20], labels: ["L", "U"] },
+            { name: "DEL", result: "DEL", keys: [20, 21], labels: ["U", "Y"] },
             { name: "LPAR", result: "(", keys: [31, 32], labels: ["N", "E"] },
             { name: "RPAR", result: ")", keys: [32, 33], labels: ["E", "I"] },
             { name: "LBKT", result: "[", keys: [45, 46], labels: ["H", ","] },
@@ -535,9 +594,31 @@
             { name: "PIPE", result: "|", keys: [33, 47], labels: ["I", "."] }
         ];
 
-        // Przełączanie warstw
+        let comboModeActive = false;
+
+        const keyCombosMap = {};
+        combos.forEach((combo, index) => {
+            combo.keys.forEach(keyId => {
+                if (!keyCombosMap[keyId]) keyCombosMap[keyId] = [];
+                keyCombosMap[keyId].push({ combo, index });
+            });
+        });
+
+        function applyComboIndicators() {
+            for (let id in layouts.default) {
+                const keyEl = document.getElementById(`k-${id}`);
+                if (!keyEl) continue;
+                if (keyCombosMap[id]) {
+                    keyEl.classList.add('has-combo-indicator');
+                } else {
+                    keyEl.classList.remove('has-combo-indicator');
+                }
+            }
+        }
+
         function switchLayer(layerName) {
-            // Zmień aktywny przycisk
+            if (comboModeActive) toggleComboMode();
+
             document.querySelectorAll('.layer-btn').forEach(btn => {
                 btn.classList.remove('active');
                 if (btn.textContent.toLowerCase() === layerName || (layerName === 'adjust' && btn.textContent.includes('ADJUST'))) {
@@ -545,20 +626,16 @@
                 }
             });
 
-            // Zaktualizuj etykiety klawiszy
             const layout = layouts[layerName];
             
-            // Specjalna obsługa warstwy ADJUST dla kciuków i prawej strony
             for (let id in layouts.default) {
                 const keyEl = document.getElementById(`k-${id}`);
                 if (!keyEl) continue;
 
                 const tapLabel = keyEl.querySelector('.tap-label');
                 const holdLabel = keyEl.querySelector('.hold-label');
-
                 let targetVal = layout[id];
 
-                // Jeśli na warstwie wybranej jest "trans", pokażmy szary tekst z warstwy default
                 if (targetVal === 'trans') {
                     tapLabel.textContent = layouts.default[id];
                     tapLabel.style.opacity = '0.4';
@@ -570,7 +647,9 @@
                     tapLabel.style.opacity = '1';
                 }
 
-                // Zachowania Hold-Tap tylko na warstwie default dla czytelności
+                // Przywrócenie domyślnych kolorów czcionek klawiszy
+                tapLabel.style.color = '';
+
                 if (layerName === 'default') {
                     if (id == 28) holdLabel.textContent = 'LCTRL';
                     else if (id == 53) holdLabel.textContent = 'RAISE';
@@ -581,11 +660,433 @@
                     holdLabel.textContent = '';
                 }
             }
+            applyComboIndicators();
         }
 
-        // Inicjalizacja listy combosów
+        function toggleComboMode() {
+            comboModeActive = !comboModeActive;
+            const btn = document.querySelector('.combo-mode-btn');
+            
+            if (comboModeActive) {
+                document.body.classList.add('combo-mode');
+                btn.classList.add('active');
+                document.querySelectorAll('.layer-btn:not(.combo-mode-btn)').forEach(b => b.classList.remove('active'));
+
+                // Zachowaj etykiety klawiszy (wyświetl defaultową warstwę z 30% opacity)
+                for (let id in layouts.default) {
+                    const keyEl = document.getElementById(`k-${id}`);
+                    if (!keyEl) continue;
+                    keyEl.querySelector('.tap-label').textContent = layouts.default[id];
+                    keyEl.querySelector('.tap-label').style.opacity = '0.3';
+                    keyEl.querySelector('.hold-label').textContent = '';
+                }
+
+                drawAllCombos();
+            } else {
+                document.body.classList.remove('combo-mode');
+                btn.classList.remove('active');
+                switchLayer('default');
+                clearComboLines();
+            }
+        }
+
+        function clearKeyLabels() {
+            for (let id in layouts.default) {
+                const keyEl = document.getElementById(`k-${id}`);
+                if (!keyEl) continue;
+                keyEl.querySelector('.tap-label').textContent = '';
+                keyEl.querySelector('.hold-label').textContent = '';
+                keyEl.querySelector('.tap-label').style.color = '';
+            }
+        }
+
+        function getKeyCenterCoords(keyId) {
+            const el = document.getElementById(`k-${keyId}`);
+            if (!el) return null;
+            const rect = el.getBoundingClientRect();
+            const containerRect = document.body.getBoundingClientRect();
+            return {
+                x: rect.left - containerRect.left + rect.width / 2,
+                y: rect.top - containerRect.top + rect.height / 2
+            };
+        }
+
+        function drawComboLines(activeCombos) {
+            const svg = document.getElementById('combo-svg');
+            clearComboLines();
+
+            activeCombos.forEach(({ combo, index }) => {
+                const coords = combo.keys.map(id => getKeyCenterCoords(id)).filter(c => c !== null);
+                if (coords.length < 2) return;
+
+                // Odczytujemy przesunięcie w pionie z definicji combosa (domyślnie 0)
+                const offset = combo.yOffset || 0;
+
+                const midX = coords.reduce((sum, c) => sum + c.x, 0) / coords.length;
+                const midY = (coords.reduce((sum, c) => sum + c.y, 0) / coords.length) + offset;
+
+                // Przesunięte w pionie punkty końcowe linii, jeśli jest offset
+                const y1 = coords[0].y + offset;
+                const y2 = coords[1].y + offset;
+
+                // Linia
+                const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                line.setAttribute("x1", coords[0].x);
+                line.setAttribute("y1", y1);
+                line.setAttribute("x2", coords[1].x);
+                line.setAttribute("y2", y2);
+                line.setAttribute("stroke", "var(--accent-combo)");
+                line.setAttribute("stroke-width", "4");
+                line.setAttribute("stroke-linecap", "round");
+                svg.appendChild(line);
+
+                // Węzły kółka na przesuniętych końcach linii
+                const coordsWithOffset = [
+                    { x: coords[0].x, y: y1 },
+                    { x: coords[1].x, y: y2 }
+                ];
+                coordsWithOffset.forEach(coord => {
+                    const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                    circle.setAttribute("cx", coord.x);
+                    circle.setAttribute("cy", coord.y);
+                    circle.setAttribute("r", "8");
+                    circle.setAttribute("fill", "var(--accent-combo)");
+                    svg.appendChild(circle);
+                });
+
+                // Plakietka z neonowym tłem i czarnym tekstem
+                const textGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+                rect.setAttribute("fill", "var(--accent-combo)");
+                rect.setAttribute("rx", "6");
+                rect.setAttribute("ry", "6");
+
+                const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                text.textContent = combo.result;
+                text.setAttribute("fill", "#000000");
+                text.setAttribute("font-size", "14px");
+                text.setAttribute("font-weight", "800");
+                text.setAttribute("font-family", "var(--font-family)");
+                text.setAttribute("text-anchor", "middle");
+                text.setAttribute("dominant-baseline", "central");
+
+                textGroup.appendChild(rect);
+                textGroup.appendChild(text);
+                svg.appendChild(textGroup);
+
+                const bbox = text.getBBox();
+                rect.setAttribute("x", midX - bbox.width / 2 - 10);
+                rect.setAttribute("y", midY - bbox.height / 2 - 6);
+                rect.setAttribute("width", bbox.width + 20);
+                rect.setAttribute("height", bbox.height + 12);
+                text.setAttribute("x", midX);
+                text.setAttribute("y", midY);
+            });
+        }
+
+        function clearComboLines() {
+            document.getElementById('combo-svg').innerHTML = '';
+        }
+
+        // Rysowanie wszystkich linii combosów na raz (stały widok)
+        function drawAllCombos() {
+            const svg = document.getElementById('combo-svg');
+            svg.innerHTML = ''; // Wyczyść poprzednie rysunki
+
+            combos.forEach((combo, idx) => {
+                const coords = combo.keys.map(id => getKeyCenterCoords(id)).filter(c => c !== null);
+                if (coords.length < 2) return;
+
+                const offset = combo.yOffset || 0;
+                const midX = coords.reduce((sum, c) => sum + c.x, 0) / coords.length;
+                const midY = (coords.reduce((sum, c) => sum + c.y, 0) / coords.length) + offset;
+
+                const y1 = coords[0].y + offset;
+                const y2 = coords[1].y + offset;
+
+                // Kontener grupy
+                const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                group.setAttribute("id", `combo-group-${idx}`);
+                group.setAttribute("class", "combo-line-group");
+                group.style.opacity = "0.6"; // Standardowo lekko przyciemnione
+                group.style.transition = "opacity 0.2s ease";
+
+                // Linia
+                const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                line.setAttribute("x1", coords[0].x);
+                line.setAttribute("y1", y1);
+                line.setAttribute("x2", coords[1].x);
+                line.setAttribute("y2", y2);
+                line.setAttribute("stroke", "var(--accent-combo)");
+                line.setAttribute("stroke-width", "3");
+                line.setAttribute("stroke-linecap", "round");
+                line.setAttribute("stroke-dasharray", "4,3");
+                group.appendChild(line);
+
+                // Kółka
+                coords.forEach(coord => {
+                    const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                    circle.setAttribute("cx", coord.x);
+                    circle.setAttribute("cy", coord.y);
+                    circle.setAttribute("r", "5");
+                    circle.setAttribute("fill", "var(--accent-combo)");
+                    group.appendChild(circle);
+                });
+
+                // Plakietka z czarnym tekstem na jaskrawym tle
+                const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+                rect.setAttribute("fill", "var(--accent-combo)");
+                rect.setAttribute("rx", "5");
+                rect.setAttribute("ry", "5");
+
+                const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                text.textContent = combo.result;
+                text.setAttribute("fill", "#000000");
+                text.setAttribute("font-size", "11px");
+                text.setAttribute("font-weight", "800");
+                text.setAttribute("font-family", "var(--font-family)");
+                text.setAttribute("text-anchor", "middle");
+                text.setAttribute("dominant-baseline", "central");
+
+                group.appendChild(rect);
+                group.appendChild(text);
+                svg.appendChild(group);
+
+                // Ustaw wymiary i pozycję plakietki po dodaniu do DOM
+                const bbox = text.getBBox();
+                rect.setAttribute("x", midX - bbox.width / 2 - 6);
+                rect.setAttribute("y", midY - bbox.height / 2 - 4);
+                rect.setAttribute("width", bbox.width + 12);
+                rect.setAttribute("height", bbox.height + 8);
+                text.setAttribute("x", midX);
+                text.setAttribute("y", midY);
+
+                // Hover na grupie linii
+                group.style.pointerEvents = "auto";
+                group.style.cursor = "pointer";
+                group.addEventListener('mouseenter', () => highlightComboIndex(idx));
+                group.addEventListener('mouseleave', () => unhighlightComboIndex(idx));
+            });
+        }
+
+        function clearComboLines() {
+            document.getElementById('combo-svg').innerHTML = '';
+        }
+
+        // Podświetlanie po indeksie (dla stałego widoku wszystkich combosów)
+        function highlightComboIndex(index) {
+            const combo = combos[index];
+            if (!combo) return;
+
+            // Przyciemnij wszystkie inne grupy combosów w SVG
+            document.querySelectorAll('.combo-line-group').forEach((grp, idx) => {
+                if (idx !== index) grp.style.opacity = "0.15";
+                else {
+                    grp.style.opacity = "1";
+                    grp.querySelector('line').setAttribute("stroke-width", "5");
+                    grp.querySelector('line').removeAttribute("stroke-dasharray");
+                }
+            });
+
+            // Podświetl kartę na dole
+            const cards = document.querySelectorAll('.combo-card');
+            if (cards[index]) cards[index].classList.add('highlight');
+
+            // Podświetl powiązane klawisze
+            combo.keys.forEach(keyId => {
+                const keyEl = document.getElementById(`k-${keyId}`);
+                if (keyEl) {
+                    keyEl.classList.add('highlight-combo');
+                    keyEl.querySelector('.tap-label').textContent = layouts.default[keyId];
+                    keyEl.querySelector('.tap-label').style.color = '#000000';
+                    keyEl.querySelector('.tap-label').style.opacity = '1';
+                }
+            });
+        }
+
+        function unhighlightComboIndex(index) {
+            const combo = combos[index];
+            if (!combo) return;
+
+            // Przywróć opacity wszystkim grupom w SVG
+            document.querySelectorAll('.combo-line-group').forEach((grp) => {
+                grp.style.opacity = "0.6";
+                const line = grp.querySelector('line');
+                if (line) {
+                    line.setAttribute("stroke-width", "3");
+                    line.setAttribute("stroke-dasharray", "4,3");
+                }
+            });
+
+            // Przywróć styl kartom na dole
+            const cards = document.querySelectorAll('.combo-card');
+            if (cards[index]) cards[index].classList.remove('highlight');
+
+            // Przywróć styl klawiszom
+            combo.keys.forEach(keyId => {
+                const keyEl = document.getElementById(`k-${keyId}`);
+                if (keyEl) {
+                    keyEl.classList.remove('highlight-combo');
+                    keyEl.querySelector('.tap-label').style.color = '';
+                    if (comboModeActive) {
+                        keyEl.querySelector('.tap-label').style.opacity = '0.3';
+                    }
+                }
+            });
+        }
+
+        // Aktywowanie combos po najechaniu karty na dole
+        function highlightSingleCombo(combo, index) {
+            if (comboModeActive) {
+                highlightComboIndex(index);
+            } else {
+                // Tryb normalny: rysujemy tylko tę jedną linię dynamicznie
+                const cards = document.querySelectorAll('.combo-card');
+                if (cards[index]) cards[index].classList.add('highlight');
+
+                combo.keys.forEach(keyId => {
+                    const keyEl = document.getElementById(`k-${keyId}`);
+                    if (keyEl) {
+                        keyEl.classList.add('highlight-combo');
+                        keyEl.querySelector('.tap-label').textContent = layouts.default[keyId];
+                        keyEl.querySelector('.tap-label').style.color = '#000000';
+                    }
+                });
+
+                // Do dynamicznego rysowania pojedynczej linii używamy tymczasowej tablicy
+                drawComboLinesSingle([{ combo, index }]);
+            }
+        }
+
+        function unhighlightSingleCombo(combo, index) {
+            if (comboModeActive) {
+                unhighlightComboIndex(index);
+            } else {
+                const cards = document.querySelectorAll('.combo-card');
+                if (cards[index]) cards[index].classList.remove('highlight');
+
+                combo.keys.forEach(keyId => {
+                    const keyEl = document.getElementById(`k-${keyId}`);
+                    if (keyEl) {
+                        keyEl.classList.remove('highlight-combo');
+                        keyEl.querySelector('.tap-label').style.color = '';
+                        keyEl.querySelector('.tap-label').textContent = layouts.default[keyId];
+                    }
+                });
+
+                clearComboLines();
+            }
+        }
+
+        // Pomocnicza funkcja do rysowania pojedynczej linii w trybie warstw
+        function drawComboLinesSingle(activeCombos) {
+            const svg = document.getElementById('combo-svg');
+            svg.innerHTML = '';
+            
+            activeCombos.forEach(({ combo }) => {
+                const coords = combo.keys.map(id => getKeyCenterCoords(id)).filter(c => c !== null);
+                if (coords.length < 2) return;
+
+                const offset = combo.yOffset || 0;
+                const midX = coords.reduce((sum, c) => sum + c.x, 0) / coords.length;
+                const midY = (coords.reduce((sum, c) => sum + c.y, 0) / coords.length) + offset;
+
+                const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                line.setAttribute("x1", coords[0].x);
+                line.setAttribute("y1", coords[0].y + offset);
+                line.setAttribute("x2", coords[1].x);
+                line.setAttribute("y2", coords[1].y + offset);
+                line.setAttribute("stroke", "var(--accent-combo)");
+                line.setAttribute("stroke-width", "4");
+                line.setAttribute("stroke-linecap", "round");
+                svg.appendChild(line);
+
+                const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+                rect.setAttribute("fill", "var(--accent-combo)");
+                rect.setAttribute("rx", "6");
+                rect.setAttribute("ry", "6");
+
+                const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                text.textContent = combo.result;
+                text.setAttribute("fill", "#000000");
+                text.setAttribute("font-size", "14px");
+                text.setAttribute("font-weight", "800");
+                text.setAttribute("font-family", "var(--font-family)");
+                text.setAttribute("text-anchor", "middle");
+                text.setAttribute("dominant-baseline", "central");
+
+                svg.appendChild(rect);
+                svg.appendChild(text);
+
+                const bbox = text.getBBox();
+                rect.setAttribute("x", midX - bbox.width / 2 - 10);
+                rect.setAttribute("y", midY - bbox.height / 2 - 6);
+                rect.setAttribute("width", bbox.width + 20);
+                rect.setAttribute("height", bbox.height + 12);
+                text.setAttribute("x", midX);
+                text.setAttribute("y", midY);
+            });
+        }
+
+        // Zdarzenie po najechaniu fizycznego klawisza
+        function handleKeyHover(keyId, isEnter) {
+            const activeCombos = keyCombosMap[keyId];
+            if (!activeCombos) return;
+
+            if (comboModeActive) {
+                // W trybie combosów po najechaniu na klawisz podświetlamy wszystkie combosy powiązane z nim
+                activeCombos.forEach(({ combo, index }) => {
+                    if (isEnter) highlightComboIndex(index);
+                    else unhighlightComboIndex(index);
+                });
+            } else {
+                // W trybie normalnych warstw
+                if (isEnter) {
+                    activeCombos.forEach(({ combo, index }) => {
+                        const cards = document.querySelectorAll('.combo-card');
+                        if (cards[index]) cards[index].classList.add('highlight');
+
+                        combo.keys.forEach(kId => {
+                            const keyEl = document.getElementById(`k-${kId}`);
+                            if (keyEl) {
+                                keyEl.classList.add('highlight-combo');
+                                keyEl.querySelector('.tap-label').textContent = layouts.default[kId];
+                                keyEl.querySelector('.tap-label').style.color = '#000000';
+                            }
+                        });
+                    });
+                    drawComboLinesSingle(activeCombos);
+                } else {
+                    activeCombos.forEach(({ combo, index }) => {
+                        const cards = document.querySelectorAll('.combo-card');
+                        if (cards[index]) cards[index].classList.remove('highlight');
+
+                        combo.keys.forEach(kId => {
+                            const keyEl = document.getElementById(`k-${kId}`);
+                            if (keyEl) {
+                                keyEl.classList.remove('highlight-combo');
+                                keyEl.querySelector('.tap-label').style.color = '';
+                                keyEl.querySelector('.tap-label').textContent = layouts.default[kId];
+                            }
+                        });
+                    });
+                    clearComboLines();
+                }
+            }
+        }
+
+        // Bindowanie klawiszy
+        for (let id in layouts.default) {
+            const keyEl = document.getElementById(`k-${id}`);
+            if (keyEl) {
+                keyEl.addEventListener('mouseenter', () => handleKeyHover(id, true));
+                keyEl.addEventListener('mouseleave', () => handleKeyHover(id, false));
+            }
+        }
+
+        // Inicjalizacja listy kart
         const combosList = document.getElementById('combos-list');
-        combos.forEach(combo => {
+        combos.forEach((combo, idx) => {
             const card = document.createElement('div');
             card.className = 'combo-card';
             
@@ -596,26 +1097,19 @@
                 <div class="combo-result">${combo.result}</div>
             `;
 
-            // Efekt najedzenia - podświetl klawisze combosów
-            card.addEventListener('mouseenter', () => {
-                combo.keys.forEach(keyId => {
-                    const keyEl = document.getElementById(`k-${keyId}`);
-                    if (keyEl) keyEl.classList.add('highlight-combo');
-                });
-            });
-
-            card.addEventListener('mouseleave', () => {
-                combo.keys.forEach(keyId => {
-                    const keyEl = document.getElementById(`k-${keyId}`);
-                    if (keyEl) keyEl.classList.remove('highlight-combo');
-                });
-            });
+            card.addEventListener('mouseenter', () => highlightSingleCombo(combo, idx));
+            card.addEventListener('mouseleave', () => unhighlightSingleCombo(combo, idx));
 
             combosList.appendChild(card);
         });
 
-        // Uruchomienie na warstwie domyślnej
+        // Uruchomienie domyślne
         switchLayer('default');
+
+        window.addEventListener('resize', () => {
+            if (comboModeActive) drawAllCombos();
+            else clearComboLines();
+        });
     </script>
 </body>
 </html>
