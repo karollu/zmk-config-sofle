@@ -1,0 +1,246 @@
+/*
+ * =============================================================================
+ * combos_custom.dtsi — Niestandardowe Combosy dla klawiatury My Sofle
+ * =============================================================================
+ * Aby WŁĄCZYĆ te combosy, upewnij się, że w my_sofle.keymap masz odkomentowane:
+ *   #include "combos_custom.dtsi"
+ *
+ * Aby WYŁĄCZYĆ combosy, po prostu dodaj // przed powyższą linijką.
+ * =============================================================================
+ */
+
+// Definicja pozycji klawiszy dla Sofle
+#define LT4 13
+#define LT3 14
+#define LT2 15
+#define LT1 16
+#define LT0 17
+
+#define RT0 18
+#define RT1 19
+#define RT2 20
+#define RT3 21
+#define RT4 22
+
+#define LM4 25
+#define LM3 26
+#define LM2 27
+#define LM1 28
+#define LM0 29
+
+#define RM0 30
+#define RM1 31
+#define RM2 32
+#define RM3 33
+#define RM4 34
+
+#define LB4 37
+#define LB3 38
+#define LB2 39
+#define LB1 40
+#define LB0 41
+
+#define RB0 44
+#define RB1 45
+#define RB2 46
+#define RB3 47
+#define RB4 48
+
+/ {
+    combos {
+        compatible = "zmk,combos";
+
+        /* --- LEWA RĘKA - poziome --- */
+        combo_esc {
+            timeout-ms = <18>;
+            key-positions = <LT3 LT2>;
+            bindings = <&kp ESC>;
+            layers = <0 1 2>;
+        };
+
+        combo_tab {
+            timeout-ms = <18>;
+            key-positions = <LM3 LM2>;
+            bindings = <&kp TAB>;
+            layers = <0 1 2>;
+        };
+
+        combo_cut {
+            timeout-ms = <18>;
+            key-positions = <LB3 LB1>;
+            bindings = <&kp LC(X)>;
+            layers = <0 1 2>;
+        };
+
+        combo_copy {
+            timeout-ms = <18>;
+            key-positions = <LB3 LB2>;
+            bindings = <&kp LC(INS)>;
+            layers = <0 1 2>;
+        };
+
+        combo_paste {
+            timeout-ms = <18>;
+            key-positions = <LB2 LB1>;
+            bindings = <&kp LS(INS)>;
+            layers = <0 1 2>;
+        };
+
+        /* --- PRAWA RĘKA - poziome --- */
+        combo_bspc {
+            timeout-ms = <18>;
+            key-positions = <RT1 RT2>;
+            bindings = <&kp BSPC>;
+            layers = <0 1 2>;
+        };
+
+        combo_del {
+            timeout-ms = <18>;
+            key-positions = <RT2 RT3>;
+            bindings = <&kp DEL>;
+            layers = <0 1 2>;
+        };
+
+        combo_lpar {
+            timeout-ms = <18>;
+            key-positions = <RM1 RM2>;
+            bindings = <&kp LPAR>;
+            layers = <0 2>;
+        };
+
+        combo_rpar {
+            timeout-ms = <18>;
+            key-positions = <RM2 RM3>;
+            bindings = <&kp RPAR>;
+            layers = <0 2>;
+        };
+
+        combo_lbkt {
+            timeout-ms = <18>;
+            key-positions = <RB1 RB2>;
+            bindings = <&kp LBKT>;
+            layers = <0 2>;
+        };
+
+        combo_rbkt {
+            timeout-ms = <18>;
+            key-positions = <RB2 RB3>;
+            bindings = <&kp RBKT>;
+            layers = <0 2>;
+        };
+
+        /* --- LEWA RĘKA - pionowe --- */
+        combo_at {
+            timeout-ms = <30>;
+            key-positions = <LT3 LM3>;
+            bindings = <&kp AT>;
+            layers = <0 1 2>;
+        };
+
+        combo_hash {
+            timeout-ms = <30>;
+            key-positions = <LT2 LM2>;
+            bindings = <&kp HASH>;
+            layers = <0 1 2>;
+        };
+
+        combo_dllr {
+            timeout-ms = <30>;
+            key-positions = <LT1 LM1>;
+            bindings = <&kp DLLR>;
+            layers = <0 1 2>;
+        };
+
+        combo_prcnt {
+            timeout-ms = <30>;
+            key-positions = <LT0 LM0>;
+            bindings = <&kp PRCNT>;
+            layers = <0 1 2>;
+        };
+
+        combo_grave {
+            timeout-ms = <30>;
+            key-positions = <LM3 LB3>;
+            bindings = <&kp GRAVE>;
+            layers = <0 1 2>;
+        };
+
+        combo_bslh {
+            timeout-ms = <30>;
+            key-positions = <LM2 LB2>;
+            bindings = <&kp BSLH>;
+            layers = <0 1 2>;
+        };
+
+        combo_equal {
+            timeout-ms = <30>;
+            key-positions = <LM1 LB1>;
+            bindings = <&kp EQUAL>;
+            layers = <0 1 2>;
+        };
+
+        combo_tilde {
+            timeout-ms = <30>;
+            key-positions = <LM0 LB0>;
+            bindings = <&kp TILDE>;
+            layers = <0 1 2>;
+        };
+
+        /* --- PRAWA RĘKA - pionowe --- */
+        combo_caret {
+            timeout-ms = <30>;
+            key-positions = <RT0 RM0>;
+            bindings = <&kp CARET>;
+            layers = <0 1 2>;
+        };
+
+        combo_plus {
+            timeout-ms = <30>;
+            key-positions = <RT1 RM1>;
+            bindings = <&kp PLUS>;
+            layers = <0 1 2>;
+        };
+
+        combo_star {
+            timeout-ms = <30>;
+            key-positions = <RT2 RM2>;
+            bindings = <&kp STAR>;
+            layers = <0 1 2>;
+        };
+
+        combo_amps {
+            timeout-ms = <30>;
+            key-positions = <RT3 RM3>;
+            bindings = <&kp AMPS>;
+            layers = <0 1 2>;
+        };
+
+        combo_under {
+            timeout-ms = <30>;
+            key-positions = <RM0 RB0>;
+            bindings = <&kp UNDER>;
+            layers = <0 1 2>;
+        };
+
+        combo_minus {
+            timeout-ms = <30>;
+            key-positions = <RM1 RB1>;
+            bindings = <&kp MINUS>;
+            layers = <0 1 2>;
+        };
+
+        combo_fslh {
+            timeout-ms = <30>;
+            key-positions = <RM2 RB2>;
+            bindings = <&kp FSLH>;
+            layers = <0 1 2>;
+        };
+
+        combo_pipe {
+            timeout-ms = <30>;
+            key-positions = <RM3 RB3>;
+            bindings = <&kp PIPE>;
+            layers = <0 1 2>;
+        };
+    };
+};
